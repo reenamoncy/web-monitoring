@@ -14,7 +14,11 @@ app = FastAPI(title="Server Monitoring Dashboard API")
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Allow frontend origin
+    allow_origins=[
+        "http://localhost:3000",
+        "https://web-monitoring.onrender.com",
+        "https://dashboard.onrender.com"  # Added new origin
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
