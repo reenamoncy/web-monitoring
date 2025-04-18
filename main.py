@@ -44,6 +44,7 @@ print("FastAPI application setup complete.")
 if __name__ == "__main__":
     import uvicorn
     try:
-        uvicorn.run("main:app", host="127.0.0.1", port=8000, log_level="debug")
+        port = int(os.environ.get("PORT", 8000))
+        uvicorn.run("main:app", host="0.0.0.0", port=port, log_level="debug")
     except Exception as e:
         print(f"Error starting the server: {e}")
