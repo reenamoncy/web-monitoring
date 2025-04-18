@@ -1,6 +1,8 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:8000/api"; // Ensure this matches the backend server URL
+const API_BASE_URL =
+  process.env.REACT_APP_API_URL ||
+  "https://your-backend-domain.onrender.com/api"; // Ensure the API_BASE_URL points to the deployed backend URL
 
 export interface AlertCounts {
   critical: number;
