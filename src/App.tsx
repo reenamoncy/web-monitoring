@@ -22,6 +22,7 @@ interface ResourceUsage {
   cpu: number;
   ram: number;
   disk: number;
+  app: number;
 }
 
 interface NetworkTraffic {
@@ -56,18 +57,16 @@ const App: React.FC = () => {
         if (serversData.length > 0) {
           // Fetch resource usage and network traffic data for the first server
           const serverMetrics = await fetchServerMetrics(serversData[0].id);
-          setResourceUsage(
-            serverMetrics.timestamps.map((timestamp, index) => ({
-              name: timestamp,
-              cpu: serverMetrics.cpu_usage[index],
-              ram: serverMetrics.ram_usage[index],
-              disk: serverMetrics.disk_usage[index],
-            }))
-          );
+          const transformedMetrics = serverMetrics.timestamps.map((timestamp, index) => ({
+            name: timestamp,
+            cpu: serverMetrics.cpu_usage[index],
+            ram: serverMetrics.ram_usage[index],
+            disk: serverMetrics.disk_usage[index],
+            app: serverMetrics.application_usage[index],
+          }));
+          setResourceUsage(transformedMetrics);
 
-          const networkTrafficData = await fetchNetworkTraffic(
-            serversData[0].id
-          );
+          const networkTrafficData = await fetchNetworkTraffic(serversData[0].id);
           setNetworkTraffic(
             networkTrafficData.timestamps.map((timestamp, index) => ({
               name: timestamp,
@@ -79,7 +78,6 @@ const App: React.FC = () => {
         // Set loading state to false after data fetching is complete
         setLoading(false);
       } catch (e) {
-        setError("Failed to fetch data from the API.");
         setLoading(false); // Set loading to false on error
       }
     };
@@ -88,7 +86,7 @@ const App: React.FC = () => {
   }, []);
 
   if (loading) {
-    return <div>Loading...</div>; // Simple loading state
+    return null; // Removed the loading state message
   }
 
   if (error) {
@@ -106,29 +104,29 @@ const App: React.FC = () => {
             <ChartCard
               title="CPU Usage"
               type="line"
-              data={resourceUsage}
-              dataKey="cpu"
+              data={resourceUsage.map((item) => ({ name: item.name, value: item.cpu }))}
+              dataKey="value"
               color="#3498db"
             />
             <ChartCard
               title="RAM Usage"
               type="line"
-              data={resourceUsage}
-              dataKey="ram"
+              data={resourceUsage.map((item) => ({ name: item.name, value: item.ram }))}
+              dataKey="value"
               color="#27ae60"
             />
             <ChartCard
               title="Disk Usage"
-              type="bar"
-              data={resourceUsage}
-              dataKey="disk"
+              type="line"
+              data={resourceUsage.map((item) => ({ name: item.name, value: item.disk }))}
+              dataKey="value"
               color="#e74c3c"
             />
             <ChartCard
-              title="Network Traffic"
+              title="Application Usage"
               type="line"
-              data={networkTraffic}
-              dataKey="incoming"
+              data={resourceUsage.map((item) => ({ name: item.name, value: item.app }))}
+              dataKey="value"
               color="#9b59b6"
             />
           </div>
@@ -137,6 +135,26 @@ const App: React.FC = () => {
         <section>
           <h2>Server Status</h2>
           <ServerList servers={servers} />
+        </section>
+
+        <section>
+          <h2>Servers</h2>
+          <div style={styles.grid}>
+            {servers.map((server) => (
+              <ChartCard
+                key={server.id}
+                title={server.name}
+                type="pie"
+                data={[
+                  { name: "Online", value: server.status === "online" ? 1 : 0 },
+                  { name: "Offline", value: server.status === "offline" ? 1 : 0 },
+                  { name: "Maintenance", value: server.status === "maintenance" ? 1 : 0 },
+                ]}
+                dataKey="value"
+                color="#3498db"
+              />
+            ))}
+          </div>
         </section>
       </main>
     </div>

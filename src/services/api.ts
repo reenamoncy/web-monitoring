@@ -1,8 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL =
-  process.env.REACT_APP_API_URL ||
-  "https://your-backend-domain.onrender.com/api"; // Ensure the API_BASE_URL points to the deployed backend URL
+const API_BASE_URL = "http://localhost:8000/api"; // Updated to point to the local backend for development
 
 export interface AlertCounts {
   critical: number;
@@ -47,11 +45,15 @@ export const fetchAlertCounts = async (): Promise<AlertCounts> => {
 
 export const fetchServers = async (): Promise<Server[]> => {
   try {
-    const response = await axios.get<Server[]>(`${API_BASE_URL}/servers`);
-    console.log("Servers fetched successfully:", response.data); // Debugging log
-    return response.data;
+    const response = await fetch(`${API_BASE_URL}/servers`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    console.log("Servers fetched successfully:", data);
+    return data;
   } catch (error) {
-    console.error("Error fetching servers:", error); // Debugging log
+    console.error("Error fetching servers:", error);
     throw error;
   }
 };

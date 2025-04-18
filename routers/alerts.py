@@ -1,11 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import func
-from datetime import datetime, timedelta
-
-from db import get_db
+from db import SessionLocal, get_db
 from models import Alert, SeverityLevel
-from schemas import AlertCount
 
 print("Initializing alerts router...")
 
@@ -13,42 +9,26 @@ router = APIRouter()
 
 print("Alerts router initialized.")
 
-@router.get("/counts", response_model=AlertCount)
-def get_alert_counts(
-    hours: int = 24,
-    db: Session = Depends(get_db)
-):
-    """
-    Get the count of alerts grouped by severity level for the last specified hours
-    """
+def test_db_connection():
     try:
-        print(f"Fetching alert counts for the last {hours} hours...")
-        time_threshold = datetime.utcnow() - timedelta(hours=hours)
-        
-        # Query to count alerts by severity
-        alert_counts = db.query(
-            Alert.severity,
-            func.count(Alert.id).label('count')
-        ).filter(
-            Alert.timestamp >= time_threshold
-        ).group_by(Alert.severity).all()
-        
-        # Initialize counts dictionary
-        counts = {
-            SeverityLevel.CRITICAL: 0,
-            SeverityLevel.MEDIUM: 0,
-            SeverityLevel.LOW: 0
-        }
-        
-        # Update counts from query results
-        for severity, count in alert_counts:
-            counts[severity] = count
-        
-        return AlertCount(
-            critical=counts[SeverityLevel.CRITICAL],
-            medium=counts[SeverityLevel.MEDIUM],
-            low=counts[SeverityLevel.LOW]
-        )
+        db = SessionLocal()
+        db.execute("SELECT 1")
+        print("Database connection successful in alerts router.")
     except Exception as e:
-        print(f"Error fetching alert counts: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        print(f"Database connection failed in alerts router: {e}")
+    finally:
+        db.close()
+
+test_db_connection()
+
+@router.get("/counts", tags=["Alerts"])
+def get_alert_counts(db: Session = Depends(get_db)):
+    # Query the database to count alerts by severity
+    critical_count = db.query(Alert).filter(Alert.severity == SeverityLevel.CRITICAL).count()
+    medium_count = db.query(Alert).filter(Alert.severity == SeverityLevel.MEDIUM).count()
+    low_count = db.query(Alert).filter(Alert.severity == SeverityLevel.LOW).count()
+
+    return {"critical": critical_count, "medium": medium_count, "low": low_count}
+
+# Removed all backend logic for alerts
+# Placeholder for future alerts logic if needed

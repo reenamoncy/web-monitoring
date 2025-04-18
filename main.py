@@ -1,7 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
+from routers.alerts import router as alerts_router
+from routers.metrics import router as metrics_router
+from routers.servers import router as servers_router
 
 # Load environment variables
 load_dotenv()
@@ -27,22 +30,30 @@ app.add_middleware(
 
 print("CORS middleware configured.")
 
-# Import database configurations and dependency
-from db import get_db, engine, Base
+# Removed all backend logic and database connections
+# Placeholder for future backend logic if needed
 
-# Import and include routers
-print("Importing routers...")
-from routers import servers, metrics, alerts
-
-print("Including routers...")
-app.include_router(servers.router, prefix="/api/servers", tags=["servers"])
-app.include_router(metrics.router, prefix="/api/metrics", tags=["metrics"])
-app.include_router(alerts.router, prefix="/api/alerts", tags=["alerts"])
+# Register routers
+app.include_router(alerts_router, prefix="/api/alerts", tags=["Alerts"])
+app.include_router(metrics_router, prefix="/api/metrics", tags=["Metrics"])
+app.include_router(servers_router, prefix="/api/servers", tags=["Servers"])
 
 @app.get("/")
 async def root():
     print("Root endpoint accessed.")
     return {"message": "Welcome to Server Monitoring Dashboard API"}
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    while True:
+        try:
+            data = await websocket.receive_text()
+            print(f"Received message: {data}")
+            await websocket.send_text(f"Message received: {data}")
+        except Exception as e:
+            print(f"WebSocket connection error: {e}")
+            break
 
 print("FastAPI application setup complete.")
 

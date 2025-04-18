@@ -1,39 +1,45 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from typing import List
-from datetime import datetime, timedelta
-
-from db import get_db
+from db import SessionLocal, get_db
 from models import Server
-from schemas import Server as ServerSchema
 
 print("Initializing servers router...")
 
 router = APIRouter()
 
-@router.get("/", response_model=List[ServerSchema])
-def get_servers(db: Session = Depends(get_db)):
-    """
-    Get a list of all servers with their details
-    """
+def test_db_connection():
     try:
-        print("Fetching servers from the database...")
-        servers = db.query(Server).all()
-        print(f"Fetched servers: {servers}")
-        # Serialize the SQLAlchemy objects into dictionaries
-        return [ServerSchema.from_orm(server) for server in servers]
+        db = SessionLocal()
+        db.execute("SELECT 1")
+        print("Database connection successful in servers router.")
     except Exception as e:
-        print(f"Error fetching servers: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        print(f"Database connection failed in servers router: {e}")
+    finally:
+        db.close()
 
-@router.get("/{server_id}", response_model=ServerSchema)
-def get_server(server_id: int, db: Session = Depends(get_db)):
-    """
-    Get details of a specific server
-    """
-    server = db.query(Server).filter(Server.id == server_id).first()
-    if server is None:
-        raise HTTPException(status_code=404, detail="Server not found")
-    return server
+test_db_connection()
+
+@router.get("/", tags=["Servers"])
+def list_servers(db: Session = Depends(get_db)):
+    # Query the database to fetch the list of servers
+    servers = db.query(Server).all()
+
+    # Transform the data into the required format
+    response = [
+        {
+            "id": server.id,
+            "name": server.name,
+            "ip": server.ip_address,
+            "location": server.location,
+            "status": server.status,
+            "lastUpdated": server.last_checked.isoformat(),
+        }
+        for server in servers
+    ]
+
+    return response
+
+# Removed all backend logic for servers
+# Placeholder for future servers logic if needed
 
 print("Servers router initialized.")

@@ -1,78 +1,51 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import func
-from datetime import datetime, timedelta
-from typing import List
-
-from db import get_db
+from db import SessionLocal, get_db
 from models import ServerMetric
-from schemas import ServerMetricsResponse, NetworkTrafficResponse
 
 print("Initializing metrics router...")
 
 router = APIRouter()
 
-@router.get("/server/{server_id}/metrics", response_model=ServerMetricsResponse)
-def get_server_metrics(
-    server_id: int,
-    hours: int = 24,
-    db: Session = Depends(get_db)
-):
-    """
-    Get server metrics (CPU, RAM, Disk, Application usage) for the last specified hours
-    """
+def test_db_connection():
     try:
-        print(f"Fetching metrics for server {server_id} for the last {hours} hours...")
-        time_threshold = datetime.utcnow() - timedelta(hours=hours)
-        
-        metrics = db.query(ServerMetric).filter(
-            ServerMetric.server_id == server_id,
-            ServerMetric.timestamp >= time_threshold
-        ).order_by(ServerMetric.timestamp).all()
-        
-        if not metrics:
-            raise HTTPException(status_code=404, detail="No metrics found for this server")
-        
-        return ServerMetricsResponse(
-            timestamps=[m.timestamp for m in metrics],
-            cpu_usage=[m.cpu_usage for m in metrics],
-            ram_usage=[m.ram_usage for m in metrics],
-            disk_usage=[m.disk_usage for m in metrics],
-            application_usage=[m.application_usage for m in metrics]
-        )
+        db = SessionLocal()
+        db.execute("SELECT 1")
+        print("Database connection successful in metrics router.")
     except Exception as e:
-        print(f"Error fetching server metrics: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        print(f"Database connection failed in metrics router: {e}")
+    finally:
+        db.close()
 
-@router.get("/server/{server_id}/network", response_model=NetworkTrafficResponse)
-def get_network_traffic(
-    server_id: int,
-    hours: int = 24,
-    db: Session = Depends(get_db)
-):
-    """
-    Get network traffic data for the last specified hours
-    """
-    try:
-        print(f"Fetching network traffic for server {server_id} for the last {hours} hours...")
-        time_threshold = datetime.utcnow() - timedelta(hours=hours)
-        
-        metrics = db.query(ServerMetric).filter(
-            ServerMetric.server_id == server_id,
-            ServerMetric.timestamp >= time_threshold
-        ).order_by(ServerMetric.timestamp).all()
-        
-        print(f"Retrieved {len(metrics)} records for network traffic.")
-        
-        if not metrics:
-            raise HTTPException(status_code=404, detail="No network traffic data found for this server")
-        
-        return NetworkTrafficResponse(
-            timestamps=[m.timestamp for m in metrics],
-            network_in=[m.network_in for m in metrics]
-        )
-    except Exception as e:
-        print(f"Error fetching network traffic: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+test_db_connection()
+
+@router.get("/server/{server_id}/metrics", tags=["Metrics"])
+def get_server_metrics(server_id: int, db: Session = Depends(get_db)):
+    # Query the database to fetch server metrics
+    metrics = db.query(ServerMetric).filter(ServerMetric.server_id == server_id).all()
+
+    # Transform the data into the required format
+    response = {
+        "timestamps": [metric.timestamp.isoformat() for metric in metrics],
+        "cpu_usage": [metric.cpu_usage for metric in metrics],
+        "ram_usage": [metric.ram_usage for metric in metrics],
+        "disk_usage": [metric.disk_usage for metric in metrics],
+        "application_usage": [metric.application_usage for metric in metrics],
+    }
+
+    return response
+
+@router.get("/server/{server_id}/network", tags=["Metrics"])
+def get_network_traffic(server_id: int, db: Session = Depends(get_db)):
+    # Query the database to fetch network traffic data
+    metrics = db.query(ServerMetric).filter(ServerMetric.server_id == server_id).all()
+
+    # Transform the data into the required format
+    response = {
+        "timestamps": [metric.timestamp.isoformat() for metric in metrics],
+        "network_in": [metric.network_in for metric in metrics],
+    }
+
+    return response
 
 print("Metrics router initialized.")
