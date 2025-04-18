@@ -93,6 +93,9 @@ const App: React.FC = () => {
     return <div style={{ color: "red", textAlign: "center" }}>{error}</div>;
   }
 
+  // Moved the filtering logic outside of JSX
+  const filteredServers = servers.filter((server) => server.status === "online");
+
   return (
     <div style={styles.container}>
       <Header />
@@ -134,27 +137,8 @@ const App: React.FC = () => {
 
         <section>
           <h2>Server Status</h2>
-          <ServerList servers={servers} />
-        </section>
-
-        <section>
-          <h2>Servers</h2>
-          <div style={styles.grid}>
-            {servers.map((server) => (
-              <ChartCard
-                key={server.id}
-                title={server.name}
-                type="pie"
-                data={[
-                  { name: "Online", value: server.status === "online" ? 1 : 0 },
-                  { name: "Offline", value: server.status === "offline" ? 1 : 0 },
-                  { name: "Maintenance", value: server.status === "maintenance" ? 1 : 0 },
-                ]}
-                dataKey="value"
-                color="#3498db"
-              />
-            ))}
-          </div>
+          {/* Pass only filtered servers to the ServerList component */}
+          <ServerList servers={filteredServers} />
         </section>
       </main>
     </div>
