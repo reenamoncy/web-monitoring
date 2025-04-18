@@ -17,6 +17,18 @@ interface AlertCounts {
   low: number;
 }
 
+interface ResourceUsage {
+  name: string;
+  cpu: number;
+  ram: number;
+  disk: number;
+}
+
+interface NetworkTraffic {
+  name: string;
+  incoming: number;
+}
+
 const App: React.FC = () => {
   const [servers, setServers] = useState<Server[]>([]);
   const [alerts, setAlerts] = useState<AlertCounts>({
@@ -24,44 +36,60 @@ const App: React.FC = () => {
     medium: 0,
     low: 0,
   });
-  const [resourceUsage, setResourceUsage] = useState<any[]>([]);
-  const [networkTraffic, setNetworkTraffic] = useState<any[]>([]);
+  const [resourceUsage, setResourceUsage] = useState<ResourceUsage[]>([]);
+  const [networkTraffic, setNetworkTraffic] = useState<NetworkTraffic[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Set loading state to true before fetching data
+        setLoading(true);
+
         const serversData = await fetchServers();
         setServers(serversData);
 
         const alertCounts = await fetchAlertCounts();
         setAlerts(alertCounts);
 
-        // Fetch resource usage and network traffic data from the API
-        const serverMetrics = await fetchServerMetrics(serversData[0].id); // Example: Fetch metrics for the first server
-        setResourceUsage(
-          serverMetrics.timestamps.map((timestamp, index) => ({
-            name: timestamp, // Updated to include 'name' field for ChartCard compatibility
-            cpu: serverMetrics.cpu_usage[index],
-            ram: serverMetrics.ram_usage[index],
-            disk: serverMetrics.disk_usage[index],
-          }))
-        );
+        if (serversData.length > 0) {
+          // Fetch resource usage and network traffic data for the first server
+          const serverMetrics = await fetchServerMetrics(serversData[0].id);
+          setResourceUsage(
+            serverMetrics.timestamps.map((timestamp, index) => ({
+              name: timestamp,
+              cpu: serverMetrics.cpu_usage[index],
+              ram: serverMetrics.ram_usage[index],
+              disk: serverMetrics.disk_usage[index],
+            }))
+          );
 
-        const networkTrafficData = await fetchNetworkTraffic(serversData[0].id); // Example: Fetch network traffic for the first server
-        setNetworkTraffic(
-          networkTrafficData.timestamps.map((timestamp, index) => ({
-            name: timestamp, // Updated to include 'name' field for ChartCard compatibility
-            incoming: networkTrafficData.network_in[index],
-          }))
-        );
+          const networkTrafficData = await fetchNetworkTraffic(
+            serversData[0].id
+          );
+          setNetworkTraffic(
+            networkTrafficData.timestamps.map((timestamp, index) => ({
+              name: timestamp,
+              incoming: networkTrafficData.network_in[index],
+            }))
+          );
+        }
+
+        // Set loading state to false after data fetching is complete
+        setLoading(false);
       } catch (e) {
         setError("Failed to fetch data from the API.");
+        setLoading(false); // Set loading to false on error
       }
     };
 
     fetchData();
   }, []);
+
+  if (loading) {
+    return <div>Loading...</div>; // Simple loading state
+  }
 
   if (error) {
     return <div style={{ color: "red", textAlign: "center" }}>{error}</div>;

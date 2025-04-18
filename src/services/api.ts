@@ -1,7 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL =
-  process.env.REACT_APP_API_URL || "http://localhost:8000/api";
+const API_BASE_URL = "http://localhost:8000/api"; // Ensure this matches the backend server URL
 
 export interface AlertCounts {
   critical: number;
@@ -39,7 +38,7 @@ export const fetchAlertCounts = async (): Promise<AlertCounts> => {
     console.log("Alert counts fetched successfully:", response.data); // Debugging log
     return response.data;
   } catch (error) {
-    console.error("Error fetching alert counts:", error); // Debugging log
+    console.error("Error fetching alert counts:", error); // Simplified error logging
     throw error;
   }
 };
@@ -80,7 +79,7 @@ export const fetchNetworkTraffic = async (
 ): Promise<NetworkTrafficResponse> => {
   try {
     const response = await axios.get<NetworkTrafficResponse>(
-      `${API_BASE_URL}/metrics/server/${serverId}/network`,
+      `${API_BASE_URL}/metrics/server/${serverId}/network`, // Updated to include /metrics prefix
       {
         params: { hours },
       }
